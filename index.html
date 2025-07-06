@@ -1,0 +1,82 @@
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Screen Recording Study</title>
+</head>
+<body>
+  <h1>Study Instructions</h1>
+  <div id="idEntry">
+    <p>Please enter your Participant ID to begin:</p>
+    <input type="text" id="pidInput" placeholder="Enter your RandomID" />
+    <button onclick="startSession()">Continue</button>
+  </div>
+
+  <div id="studyContent" style="display:none;">
+    <p><strong>Step 1:</strong> Read all instructions carefully. Understand the task before you begin.</p>
+    <p><strong>Step 2:</strong> Click <b>Start Recording</b> below and select to share your <b>current window</b> or <b>entire screen</b>. You want to make sure the screen recorder will capture your gameplay.
+    <p><strong>Step 3:</strong> Open the <a href="https://playspent.org/" target="_blank" rel="noopener noreferrer" id="gameLink">Spent Game</a> in a new tab.</p>
+    <p><strong>Step 4:</strong> Complete the game task according to the instructions on the game page.</p>
+    <p><strong>Step 5:</strong> When done, either click <strong>Stop Recording</strong> button here, or manually stop screen sharing from your browser toolbar.</p>
+    <p><strong>Step 6:</strong> The recording will then download automatically and you will need to return to your Qualtrics page to upload the recording.</p>
+
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+  </div>
+
+ <script>
+    let pid = '';
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    function startSession() {
+      pid = document.getElementById('pidInput').value.trim();
+      if (!pid) {
+        alert("Please enter your Participant ID to continue.");
+        return;
+      }
+      document.getElementById('idEntry').style.display = 'none';
+      document.getElementById('studyContent').style.display = 'block';
+    }
+
+    document.getElementById('startBtn').onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${pid}-MoralRecording.webm`;
+          a.click();
+          URL.revokeObjectURL(url);
+
+          // Instead of redirect, show reminder + close window
+          alert("Your screen recording has downloaded. Please return to the Qualtrics tab and upload your file there.");
+          window.close(); // Will only work if page was opened from Qualtrics in a new tab
+        };
+
+        mediaRecorder.start();
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        alert("Recording started. Please switch to the Spent game tab.");
+      } catch (err) {
+        alert('Error: ' + err);
+      }
+    };
+
+    document.getElementById('stopBtn').onclick = () => {
+      mediaRecorder.stop();
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+    };
+  </script>
+</body>
+</html>
